@@ -1,0 +1,7 @@
+.cache/
+build/
+old/
+prtest/
+testfiles/
+code-docs/
+.vscode/

@@ -1,0 +1,14 @@
+---
+BasedOnStyle: LLVM
+AlignAfterOpenBracket: DontAlign
+AlignEscapedNewlines: DontAlign
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: WithoutElse
+ColumnLimit: '80'
+ContinuationIndentWidth: '4'
+IndentWidth: '4'
+SortIncludes: 'false'
+TabWidth: '4'
+UseTab: ForIndentation
+IndentCaseLabels: 'true'
+...
