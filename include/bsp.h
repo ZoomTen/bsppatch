@@ -61,8 +61,9 @@ typedef struct {
  * @brief This holds the state of the BSP engine as the script is run.
  *
  * I'm calling this a "VM", but I don't think the phrase "virtual machine"
- * or "interpreter" (as in machine) actually appears anywhere in the documentation,
- * but I feel like that's basically what it is and it makes it sound fancier.
+ * or "interpreter" (as in machine) actually appears anywhere in the
+ * documentation, but I feel like that's basically what it is and it makes it
+ * sound fancier.
  */
 typedef struct {
 	BspPatchSpace patch_space;
