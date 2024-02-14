@@ -866,6 +866,9 @@ WORD interpret(BspVM *vm) {
 					GET_VAL_FROM_VAR(menu_options, menu_options_var);
 				}
 
+				__d("to #%d", to_var);
+				__d("from %x", menu_options);
+
 				WORD *menu_string_ptr_list =
 				    (WORD *)&vm->patch_space.data[menu_options];
 				WORD user_option;
