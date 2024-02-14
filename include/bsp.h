@@ -12,11 +12,6 @@ typedef uint8_t BYTE;
 typedef uint16_t HALFWORD;
 typedef uint32_t WORD;
 
-/**
- * @brief Generic print handler.
- */
-typedef int(BspPrintHandler)(const BYTE *);
-
 typedef struct {
 	WORD position;
 	bool is_locked;
@@ -43,8 +38,23 @@ typedef struct {
 	size_t elements;
 } BspStack;
 
+/**
+ * @brief You haven't seen the last of the linked lists
+ */
+typedef struct BspMenu {
+	BYTE *menu_text;
+	struct BspMenu *next;
+} BspMenu;
+
+/**
+ * @brief Generic print handler.
+ */
+typedef int(BspPrintHandler)(const BYTE *);
+typedef WORD(BspMenuHandler)(const BspMenu *);
+
 typedef struct {
 	BspPrintHandler *print;
+	BspMenuHandler *menu;
 } BspHandlers;
 
 /**

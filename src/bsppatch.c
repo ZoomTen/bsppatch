@@ -79,12 +79,28 @@ static int print_handler(const BYTE *msg) {
 	return printf("%s\n", msg);
 }
 
+static WORD menu_handler(const BspMenu *menu) {
+	WORD counter = 1;
+	BspMenu *head = menu;
+	while (head->next != NULL) {
+		printf("%d. %s\n", counter++, head->menu_text);
+		head = head->next;
+	}
+
+	// TODO kinda risky here
+	int input;
+	printf("Make your selection: ");
+	scanf("%d", &input);
+	return (WORD)input - 1;
+}
+
 WORD patch_with_files(FILE *input, FILE *patch, FILE *output) {
 	// assumes files are already open
 	BspVM *vm = init_vm();
 
 	// use default print handler
 	vm->handlers.print = print_handler;
+	vm->handlers.menu = menu_handler;
 
 	{ // copy the BSP to the patch_space
 		fseek(patch, 0L, SEEK_END);

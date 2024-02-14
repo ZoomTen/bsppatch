@@ -853,6 +853,65 @@ WORD interpret(BspVM *vm) {
 				vm->variables[out_var] = end_addr;
 				break;
 			}
+			case MENU_VAR_WD:
+			case MENU_VAR_VAR: {
+				__d("menu");
+
+				BYTE to_var = READ_BYTE(vm, true);
+				WORD menu_options;
+
+				if (opcode == MENU_VAR_WD) {
+					menu_options = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(menu_options, menu_options_var);
+				}
+
+				WORD *menu_string_ptr_list =
+				    (WORD *)&vm->patch_space.data[menu_options];
+				WORD user_option;
+
+				BspMenu *menu = malloc(sizeof(BspMenu));
+				menu->menu_text = NULL;
+				menu->next = NULL;
+
+				BspMenu *menu_head = menu;
+
+				size_t i = 0;
+				for (;;) {
+					WORD new_ptr = menu_string_ptr_list[i];
+					WORD next_ptr = menu_string_ptr_list[i + 1];
+					if (next_ptr != 0xffffffff) {
+						menu_head->menu_text =
+						    (BYTE *)&vm->patch_space.data[new_ptr];
+						menu_head->next = malloc(sizeof(BspMenu));
+
+						menu_head->next->menu_text = NULL;
+						menu_head->next->next = NULL;
+						menu_head = menu_head->next;
+					} else {
+						goto init_menu_done;
+					}
+					i++;
+				}
+			init_menu_done:
+				user_option = vm->handlers.menu(menu);
+
+				// free menu
+				menu_head = menu;
+				BspMenu *old_menu_head;
+				for (;;) {
+					old_menu_head = menu_head;
+					if (menu_head->next == NULL) {
+						free(old_menu_head);
+						goto free_menu_done;
+					}
+					menu_head = menu_head->next;
+					free(old_menu_head);
+				}
+			free_menu_done:
+				vm->variables[to_var] = user_option;
+				break;
+			}
 			default: {
 				__d("Unimplemented opcode: %02x", opcode);
 				interpreter_error_code = BSP_ERR_UNIMPLEMENTED;
