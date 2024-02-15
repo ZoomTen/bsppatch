@@ -231,6 +231,46 @@ WORD interpret(BspVM *vm) {
 				vm->ip = new_loc;
 				break;
 			}
+			case CALLZ_VAR_WD:
+			case CALLZ_VAR_VAR:
+			case CALLNZ_VAR_WD:
+			case CALLNZ_VAR_VAR: {
+				if ((opcode == CALLZ_VAR_WD)||(opcode == CALLZ_VAR_VAR)) {
+					__d("callz");
+				} else {
+					__d("callnz");
+				}
+
+				BYTE which_var = READ_BYTE(vm, true);
+				WORD callto;
+
+				if ((opcode == CALLZ_VAR_WD)||(opcode==CALLNZ_VAR_WD)) {
+					callto = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(callto, callto_var);
+				}
+
+				WORD var_value = vm->variables[which_var];
+
+				if ((opcode==CALLZ_VAR_WD)||(opcode==CALLZ_VAR_VAR)) {
+					if (var_value != 0) {
+						__d("Not fulfilled, moving on");
+						break;
+					}
+					__d("#%d == 0", which_var);
+				} else {
+					if (var_value == 0) {
+						__d("Not fulfilled, moving on");
+						break;
+					}
+					__d("#%d != 0", which_var);
+				}
+
+				__d("subroutine %x", callto);
+				push_stack(vm, vm->ip);
+				vm->ip = callto;
+				break;
+			}
 			case EXIT_WD:
 			case EXIT_VAR: {
 				__d("exit");
@@ -393,12 +433,28 @@ WORD interpret(BspVM *vm) {
 				push_string(vm, &vm->patch_space.data[address], add_str_size);
 				break;
 			}
-			case ADD_VAR_WD_WD: {
+			case ADD_VAR_WD_WD:
+			case ADD_VAR_WD_VAR:
+			case ADD_VAR_VAR_WD:
+			case ADD_VAR_VAR_VAR: {
 				__d("add");
 
 				BYTE target_var = READ_BYTE(vm, true);
-				WORD word1 = READ_WORD(vm, true);
-				WORD word2 = READ_WORD(vm, true);
+				WORD word1;
+				WORD word2;
+
+				if ((opcode==ADD_VAR_WD_WD)||(opcode==ADD_VAR_WD_VAR)) {
+					word1 = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(word1, word1_var);
+				}
+
+				if ((opcode==ADD_VAR_WD_WD)||(opcode==ADD_VAR_VAR_WD)) {
+					word2 = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(word2, word2_var);
+				}
+
 				__d("to #%d", target_var);
 				__d("%d + %d", word1, word2);
 
@@ -566,17 +622,31 @@ WORD interpret(BspVM *vm) {
 				vm->variables[var_to] = val1 / val2;
 				break;
 			}
-			case ADD_VAR_VAR_WD: {
-				__d("add");
+			case MUL_VAR_WD_WD:
+			case MUL_VAR_WD_VAR:
+			case MUL_VAR_VAR_WD:
+			case MUL_VAR_VAR_VAR: {
+				__d("multiply");
 
-				BYTE var_to = READ_BYTE(vm, true);
-				BYTE val1_var = READ_BYTE(vm, true);
-				WORD val2 = READ_WORD(vm, true);
-				WORD val1 = vm->variables[val1_var];
+				BYTE which_var = READ_BYTE(vm, true);
+				WORD word1;
+				WORD word2;
 
-				__d("#%d = %d + %d", var_to, val1, val2);
+				if ((opcode==MUL_VAR_WD_WD)||(opcode==MUL_VAR_WD_VAR)){
+					word1 = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(word1, word1_var);
+				}
 
-				vm->variables[var_to] = val1 + val2;
+				if ((opcode==MUL_VAR_WD_WD)||(opcode==MUL_VAR_VAR_WD)) {
+					word2 = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(word2, word2_var);
+				}
+
+				__d("#%d = %d * %d", which_var, word1, word2);
+
+				vm->variables[which_var] = word1 * word2;
 				break;
 			}
 			case PRINTBUF: {
@@ -635,6 +705,72 @@ WORD interpret(BspVM *vm) {
 				__d("check #%d < %d", which_var, value);
 
 				if (vm->variables[which_var] < value) {
+					__d("yes, jump to %x", address);
+					vm->ip = address;
+					break;
+				}
+
+				__d("no, moving on");
+				break;
+			}
+			case IFGT_VAR_WD_WD:
+			case IFGT_VAR_VAR_WD:
+			case IFGT_VAR_WD_VAR:
+			case IFGT_VAR_VAR_VAR: {
+				__d("ifgt");
+
+				BYTE which_var = READ_BYTE(vm, true);
+				WORD value;
+				WORD address;
+
+				if ((opcode == IFGT_VAR_WD_WD) || (opcode == IFGT_VAR_WD_VAR)) {
+					value = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(value, value_var);
+				}
+
+				if ((opcode == IFGT_VAR_WD_WD) || (opcode == IFGT_VAR_VAR_WD)) {
+					address = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(address, address_var);
+				}
+
+				__d("check #%d > %d", which_var, value);
+
+				if (vm->variables[which_var] > value) {
+					__d("yes, jump to %x", address);
+					vm->ip = address;
+					break;
+				}
+
+				__d("no, moving on");
+				break;
+			}
+			case IFGE_VAR_WD_WD:
+			case IFGE_VAR_VAR_WD:
+			case IFGE_VAR_WD_VAR:
+			case IFGE_VAR_VAR_VAR: {
+				__d("ifge");
+
+				BYTE which_var = READ_BYTE(vm, true);
+				WORD value;
+				WORD address;
+
+				if ((opcode == IFGE_VAR_WD_WD) || (opcode == IFGE_VAR_WD_VAR)) {
+					value = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(value, value_var);
+				}
+
+				if ((opcode == IFGE_VAR_WD_WD) || (opcode == IFGE_VAR_VAR_WD)) {
+					address = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(address, address_var);
+				}
+
+				__d("check #%d >= %d", which_var, value);
+
+				if (vm->variables[which_var] >= value) {
 					__d("yes, jump to %x", address);
 					vm->ip = address;
 					break;
@@ -757,7 +893,7 @@ WORD interpret(BspVM *vm) {
 				WORD addr_ptr = hash_addr;
 				for (size_t i = 0; i < 20; i++) {
 					if (digest[i] != vm->patch_space.data[addr_ptr++]) {
-						result |= 1 << i;
+						result |= (WORD) 1 << i;
 					}
 				}
 
@@ -805,16 +941,27 @@ WORD interpret(BspVM *vm) {
 				break;
 			}
 			case TRUNC_WD:
-			case TRUNC_VAR: {
-				__d("truncate");
+			case TRUNC_VAR:
+			case TRUNCPOS: {
+				if (opcode != TRUNCPOS) {
+					__d("truncate");
+				} else {
+					__d("truncatepos");
+				}
 
 				WORD new_length;
 
-				if (opcode == TRUNC_WD) {
-					new_length = READ_WORD(vm, true);
+				if (opcode != TRUNCPOS) {
+					if (opcode == TRUNC_WD) {
+						new_length = READ_WORD(vm, true);
+					} else {
+						GET_VAL_FROM_VAR(new_length, new_length_var);
+					}
 				} else {
-					GET_VAL_FROM_VAR(new_length, new_length_var);
+					new_length = vm->fp.position;
 				}
+
+				__d("change size of file buffer: %d -> %d", vm->file_buffer.size, new_length);
 
 				if (new_length < vm->file_buffer.size) {
 					memset(&vm->file_buffer.data[new_length], 0,
@@ -866,9 +1013,6 @@ WORD interpret(BspVM *vm) {
 					GET_VAL_FROM_VAR(menu_options, menu_options_var);
 				}
 
-				__d("to #%d", to_var);
-				__d("from %x", menu_options);
-
 				WORD *menu_string_ptr_list =
 				    (WORD *)&vm->patch_space.data[menu_options];
 				WORD user_option;
@@ -913,6 +1057,120 @@ WORD interpret(BspVM *vm) {
 				}
 			free_menu_done:
 				vm->variables[to_var] = user_option;
+				break;
+			}
+			case JUMPTABLE: {
+				__d("jumptable");
+
+				WORD which_jptbl_entry;
+				GET_VAL_FROM_VAR(which_jptbl_entry, which_var);
+
+				// TODO: bounds checking
+				WORD indir_location = (which_jptbl_entry * (WORD) 4) + vm->ip;
+				__d("-> to %x", indir_location);
+
+				vm->ip = indir_location;
+				break;
+			}
+			case GETHALFWDINC: {
+				__d("gethalfwordinc");
+
+				BYTE which_var = READ_BYTE(vm, true);
+				BYTE address_var = READ_BYTE(vm, true);
+
+				WORD what_address = vm->variables[address_var];
+
+				__d("to #%d", which_var);
+				__d("from address %2x", what_address);
+
+				vm->variables[which_var] =
+				    (WORD)vm->patch_space.data[what_address++];
+				vm->variables[which_var] |=
+				    ((WORD)vm->patch_space.data[what_address] << 8);
+
+				vm->variables[address_var] += 2;
+				break;
+			}
+			case GETHALFWDDEC: {
+				__d("gethalfworddec");
+
+				BYTE which_var = READ_BYTE(vm, true);
+				BYTE address_var = READ_BYTE(vm, true);
+
+				WORD what_address = vm->variables[address_var];
+
+				__d("to #%d", which_var);
+				__d("from address %2x", what_address);
+
+				vm->variables[which_var] =
+				    (WORD)vm->patch_space.data[what_address++];
+				vm->variables[which_var] |=
+				    ((WORD)vm->patch_space.data[what_address] << 8);
+
+				vm->variables[address_var] -= 2;
+				break;
+			}
+			case XORDATA_WD_WD:
+			case XORDATA_WD_VAR:
+			case XORDATA_VAR_WD:
+			case XORDATA_VAR_VAR: {
+				__d("xordata");
+
+				WORD ps_address;
+				WORD length;
+
+				if ((opcode==XORDATA_WD_WD)||(opcode==XORDATA_WD_VAR)) {
+					ps_address = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(ps_address, ps_address_var);
+				}
+
+				if ((opcode==XORDATA_WD_WD)||(opcode==XORDATA_VAR_WD)) {
+					length = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(length, length_var);
+				}
+
+				WORD pos = vm->fp.position;
+				for (size_t i = length; i > 0; i--) {
+					vm->file_buffer.data[pos++] ^= vm->patch_space.data[ps_address++];
+
+					if (!vm->fp.is_locked) {
+						vm->fp.position = pos;
+					}
+				}
+				break;
+			}
+			case FILLBT_WD_BT:
+			case FILLBT_WD_VAR:
+			case FILLBT_VAR_BT:
+			case FILLBT_VAR_VAR: {
+				__d("fillbyte");
+
+				WORD count;
+				BYTE value;
+
+				if ((opcode==FILLBT_WD_BT)||(opcode==FILLBT_WD_VAR)) {
+					count = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(count, count_var);
+				}
+
+				if ((opcode==FILLBT_WD_BT)||(opcode==FILLBT_VAR_BT)) {
+					value = READ_BYTE(vm, true);
+				} else {
+					BYTE value_var = READ_BYTE(vm, true);
+					value = (BYTE)(vm->variables[value_var] & 0xff);
+				}
+
+				WORD loc = vm->fp.position;
+				while (count > 0) {
+					vm->file_buffer.data[loc++] = value;
+					if (!vm->fp.is_locked) {
+						vm->fp.position = loc;
+					}
+					count--;
+				}
 				break;
 			}
 			default: {
