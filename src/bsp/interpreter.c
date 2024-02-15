@@ -8,7 +8,7 @@
 
 #include "sha1/sha1.h"
 
-#ifndef NDEBUG
+#ifdef BSP_DEBUG
 #include <stdarg.h>
 #define DEBUG_PRINT_LN(...) \
 	DEBUG_PRINT(__VA_ARGS__); \
@@ -43,7 +43,7 @@ static Rune utf8_from_data(const BYTE *);
 static WORD utf8_to_codepoint(const Rune);
 static Rune codepoint_to_utf8(const WORD);
 
-#ifndef NDEBUG
+#ifdef BSP_DEBUG
 static inline void DEBUG_PRINT(char *msg, ...);
 #endif
 
@@ -86,7 +86,7 @@ WORD interpret(BspVM *vm) {
 	read_file_half_word(x, y); \
 	BREAK_ON_ERROR
 
-#ifndef NDEBUG
+#ifdef BSP_DEBUG
 #define __d(...) (void)DEBUG_PRINT_LN(__VA_ARGS__)
 #else
 #define __d(...)
@@ -1561,7 +1561,7 @@ invalid_magic:
 	return INVALID_WORD;
 }
 
-#ifndef NDEBUG
+#ifdef BSP_DEBUG
 inline void DEBUG_PRINT(char *msg, ...) {
 	va_list a;
 	va_start(a, msg);

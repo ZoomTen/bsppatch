@@ -1,4 +1,10 @@
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_definitions(
+        "-DBSP_DEBUG"
+    )
+endif()
+
 add_library(libbsp STATIC
     interpreter.c
     vm_object.c
