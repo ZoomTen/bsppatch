@@ -1065,10 +1065,10 @@ WORD interpret(BspVM *vm) {
 				WORD which_jptbl_entry;
 				GET_VAL_FROM_VAR(which_jptbl_entry, which_var);
 
-				// TODO: bounds checking
-				WORD indir_location = (which_jptbl_entry * (WORD) 4) + vm->ip;
+				WORD indir_location_ptr = (which_jptbl_entry * (WORD) 4) + vm->ip;
+				vm->ip = indir_location_ptr;
+				WORD indir_location = READ_WORD(vm, true);
 				__d("-> to %x", indir_location);
-
 				vm->ip = indir_location;
 				break;
 			}
