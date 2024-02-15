@@ -1026,8 +1026,7 @@ WORD interpret(BspVM *vm) {
 				size_t i = 0;
 				for (;;) {
 					WORD new_ptr = menu_string_ptr_list[i];
-					WORD next_ptr = menu_string_ptr_list[i + 1];
-					if (next_ptr != 0xffffffff) {
+					if (new_ptr != 0xffffffff) {
 						menu_head->menu_text =
 						    (BYTE *)&vm->patch_space.data[new_ptr];
 						menu_head->next = malloc(sizeof(BspMenu));
