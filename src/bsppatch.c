@@ -77,7 +77,7 @@ static int print_handler(const BYTE *msg) {
 }
 
 static WORD menu_handler(const BspMenu *menu) {
-	WORD counter = 1;
+	int counter = 1;
 	BspMenu *head = menu;
 	while (head->next != NULL) {
 		printf("%d. %s\n", counter++, head->menu_text);
@@ -85,9 +85,11 @@ static WORD menu_handler(const BspMenu *menu) {
 	}
 
 	// TODO kinda risky here
-	int input;
-	printf("Make your selection: ");
-	scanf("%d", &input);
+	int input = 0;
+	do {
+		printf("Make your selection: ");
+		scanf("%d", &input);
+	} while ((input < 1) || (input >= counter));
 	return (WORD)input - 1;
 }
 
