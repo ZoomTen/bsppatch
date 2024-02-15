@@ -21,9 +21,6 @@ int main(int argc, char **argv) {
 	char *patch_fname = argv[2];
 	char *output_fname = argv[3];
 
-	printf("using:\n  input: %s,\n  output: %s,\n  patch file: %s\n",
-	    input_fname, output_fname, patch_fname);
-
 	WORD patch_result =
 	    patch_with_filenames(input_fname, patch_fname, output_fname);
 	WORD error = get_interpreter_error_code();
