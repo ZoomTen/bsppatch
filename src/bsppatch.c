@@ -50,19 +50,19 @@ WORD patch_with_filenames(
 		return 1;
 	}
 
-	FILE *input = fopen(input_fn, "r");
+	FILE *input = fopen(input_fn, "rb");
 	if (input == NULL) {
 		perror("Can't open input file");
 		return 1;
 	}
 
-	FILE *patch = fopen(patch_fn, "r");
+	FILE *patch = fopen(patch_fn, "rb");
 	if (patch == NULL) {
 		perror("Can't open patch file");
 		return 1;
 	}
 
-	FILE *output = fopen(output_fn, "w+");
+	FILE *output = fopen(output_fn, "w+b");
 	if (output == NULL) {
 		perror("Can't open output file");
 		return 1;
