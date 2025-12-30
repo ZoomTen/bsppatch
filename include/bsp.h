@@ -153,6 +153,16 @@ enum BspErrors {
 };
 
 /**
+ * @brief Shift types of the `bitshift` instruction.
+ */
+enum BspShiftTypes {
+	SHIFTLEFT = 0,
+	SHIFTRIGHT,
+	ROTATELEFT,
+	SHIFTRIGHTARITH,
+};
+
+/**
  * @brief Opcodes of the BSP virtual machine, one byte each.
  */
 // VAR = variable

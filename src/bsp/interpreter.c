@@ -109,12 +109,12 @@ WORD interpret(BspVM *vm) {
 				__d("ret");
 			do_return:
 				if (vm->stack.elements == 0) {
-					__d("0");
+					__d("no more addresses in call stack, returning 0");
 					retval = 0;
 					must_quit = true;
 					break;
 				}
-				__d("from subroutine");
+				__d("from subroutine (pop from call stack)");
 				vm->ip = pop_stack(vm);
 				break;
 			}
@@ -126,7 +126,7 @@ WORD interpret(BspVM *vm) {
 				__d("check #%d == 0", which_var);
 
 				if (vm->variables[which_var] == 0) {
-					__d("yes");
+					__d("yes, perform standard ret");
 					goto do_return;
 				}
 
@@ -138,10 +138,10 @@ WORD interpret(BspVM *vm) {
 
 				BYTE which_var = READ_BYTE(vm, true);
 
-				__d("check #%d == 0", which_var);
+				__d("check #%d != 0", which_var);
 
 				if (vm->variables[which_var] != 0) {
-					__d("yes");
+					__d("yes, perform standard ret");
 					goto do_return;
 				}
 
@@ -1169,6 +1169,187 @@ WORD interpret(BspVM *vm) {
 						vm->fp.position = loc;
 					}
 					count--;
+				}
+				break;
+			}
+			case BITSHIFT: {
+				__d("bitshift");
+				BYTE opcode = READ_BYTE(vm, true);
+				bool is_variable = opcode >> 7;
+				enum BspShiftTypes shift_type = (opcode >> 5) & 3;
+				BYTE shift_count = opcode & 31;
+				__d("is variable? %s", is_variable? "yes" : "no");
+				__d("shift type: %d", shift_type);
+				__d("shift count: %d", shift_count);
+
+				BYTE var_store;
+				WORD value;
+
+				if (!is_variable) {
+					var_store = READ_BYTE(vm, true);
+					value = READ_WORD(vm, true);
+				} else {
+					var_store = READ_BYTE(vm, true);
+					BYTE var_value = READ_BYTE(vm, true);
+					value = vm->variables[var_value];
+				}
+
+				if (shift_count == 0) {
+					BYTE var_shift = READ_BYTE(
+						vm, true
+					);
+					shift_count = vm->variables[var_shift] & 31;
+				}
+
+				__d("to #%d", var_store);
+				__d("original value: %d", value);
+
+				WORD new_value;
+
+				switch (shift_type) {
+					case SHIFTLEFT:
+						new_value = value << shift_count;
+						break;
+					case SHIFTRIGHT:
+						new_value = value >> shift_count;
+						break;
+					case ROTATELEFT:
+						new_value = (
+							(value << shift_count) |
+							(value >> (32 - shift_count))
+						);
+						break;
+					case SHIFTRIGHTARITH:
+						new_value = value;
+						for (size_t i=0; i<shift_count; i++) {
+							new_value <<= 1;
+							if ((value >> 31) & 1) {
+								new_value |= ((WORD) 1 << 31);
+							}
+						}
+						break;
+				}
+
+				__d("new value: %d", new_value);
+				vm->variables[var_store] = new_value;
+				break;
+			}
+			case PUSHPOS: {
+				__d("pushpos");
+				push_stack(vm, vm->fp.position);
+				break;
+			}
+			case POPPOS: {
+				__d("poppos");
+				WORD new_fp = pop_stack(vm);
+				if (interpreter_error_code != BSP_ERR_NONE) break;
+
+				if (vm->fp.is_locked) {
+					__d("file position is locked");
+				} else {
+					__d("setting FP to %d", new_fp);
+					vm->fp.position = new_fp;
+				}
+				break;
+			}
+			case SEEKBACK_WD:
+			case SEEKBACK_VAR: {
+				__d("seekback");
+
+				WORD amount;
+
+				if (opcode == SEEKBACK_WD) {
+					amount = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(amount, amount_var);
+				}
+
+				if (!vm->fp.is_locked) {
+					__d("seek amount: -%d", amount);
+					vm->fp.position -= amount;
+				}
+				break;
+			}
+			case SEEKFWD_WD:
+			case SEEKFWD_VAR: {
+				__d("seekfwd");
+
+				WORD amount;
+
+				if (opcode == SEEKFWD_WD) {
+					amount = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(amount, amount_var);
+				}
+
+				if (!vm->fp.is_locked) {
+					__d("seek amount: +%d", amount);
+					vm->fp.position += amount;
+				}
+				break;
+			}
+			case WRITEWD_WD:
+			case WRITEWD_VAR: {
+				__d("writeword");
+
+				WORD value;
+
+				if (opcode == WRITEWD_WD) {
+					value = READ_WORD(vm, true);
+				} else {
+					GET_VAL_FROM_VAR(value, value_var);
+				}
+
+				__d("word: %d starting at %x", value, vm->fp.position);
+
+				if ((vm->fp.position + 4) > vm->file_buffer.size) {
+					BYTE *new_fb = realloc(vm->file_buffer.data, sizeof(BYTE) * vm->fp.position + 4);
+					if (new_fb == NULL) {
+						interpreter_error_code = BSP_ERR_NOMEM;
+						break;
+					}
+					vm->file_buffer.data = new_fb;
+				}
+
+				vm->file_buffer.data[vm->fp.position] = (value & 0xff);
+				vm->file_buffer.data[vm->fp.position+1] = ((value >> 8) & 0xff);
+				vm->file_buffer.data[vm->fp.position+2] = ((value >> 16) & 0xff);
+				vm->file_buffer.data[vm->fp.position+3] = ((value >> 24) & 0xff);
+
+				if (!vm->fp.is_locked) {
+					vm->fp.position += 4;
+				}
+				break;
+			}
+			case WRITEBT_BT:
+			case WRITEBT_VAR: {
+				__d("writebyte");
+
+				BYTE value;
+
+				if (opcode == WRITEBT_BT) {
+					value = READ_BYTE(vm, true);
+				} else {
+					WORD wd_value;
+					GET_VAL_FROM_VAR(wd_value, value_var);
+					value = (BYTE)(wd_value & 0xff);
+				}
+
+				__d("byte: %d at %x", value, vm->fp.position);
+
+				if ((vm->fp.position + 1) > vm->file_buffer.size) {
+					BYTE *new_fb = realloc(vm->file_buffer.data, sizeof(BYTE) * vm->fp.position + 1);
+					if (new_fb == NULL) {
+						interpreter_error_code = BSP_ERR_NOMEM;
+						break;
+					}
+					vm->file_buffer.data = new_fb;
+				}
+
+				vm->file_buffer.data[vm->fp.position] = (value);
+
+				if (!vm->fp.is_locked) {
+					vm->fp.position++;
 				}
 				break;
 			}
